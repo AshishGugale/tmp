@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const UserModel = mongoose.Schema({
-  username: {
+  Username: {
     type: String,
     required: true,
   },
@@ -9,11 +9,14 @@ const UserModel = mongoose.Schema({
     type: String,
     required: true,
   },
-  contracts: {
-    type: Array,
+  Items: {
+    type: [Object],
     default: [],
-    required: true,
   },
+  Bids: {
+    type: [Object],
+    default: [],
+  }
 });
 
 const User = mongoose.model("Users", UserModel);

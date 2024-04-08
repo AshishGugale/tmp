@@ -1,14 +1,27 @@
 import mongoose from "mongoose";
 
 const BidModel = mongoose.Schema({
+  BidID: {
+    type: String,
+    required: true,
+  },
   ItemID: {
     type: String,
     required: true,
   },
-  price:{
-    
-  }  
+  UserID: {
+    type: String,
+    required: true,
+  },
+  Price: {
+    type: Number,
+    required: true,
+  },
+  IsActive: {
+    type: Boolean,
+    default: true
+  }
 });
 
-const User = mongoose.model("Users", UserModel);
-export default User;
+const Bid = mongoose.model("Bids", BidModel);
+export default Bid;
