@@ -3,207 +3,224 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-contract SunStream {
+contract Auction {
     using SafeMath for uint256;
 
-    address public owner;
-    uint256 CurrentItemID;
+    address public contractOwner;
+    uint256 public nextItemId;
     bool public locked;
 
     modifier onlyOwner() {
         require(
-            msg.sender == owner,
-            "Only the contract owner can call this function"
+            msg.sender == contractOwner,
+            "Only owner can call this function"
         );
         _;
     }
 
-    modifier ReentrancyGuard() {
-        require(
-            !locked,
-            "A user is currently accessing the critical section!!"
-        );
+    modifier reentrancyGuard() {
+        require(!locked, "Another user is accessing the critical section!");
         locked = true;
         _;
         locked = false;
     }
 
     constructor() {
-        owner = msg.sender;
-        CurrentItemID = 1;
+        contractOwner = msg.sender;
+        nextItemId = 1;
         locked = false;
     }
 
-    struct Bid {
-        address BidderAddress;
-        uint256 BidID;
-        string BidderID;
-        uint256 ItemID;
-        uint256 Price;
-        bool IsActive;
+    struct Listing {
+        address seller;
+        uint256 id;
+        bool isActive;
+        uint256 price;
+        uint256 winningBidId;
     }
 
-    struct Item {
-        address SellerAddress;
-        uint256 ItemID;
-        bool IsActive;
-        uint256 Price;
-        uint256 AcceptedBidID;
+    struct Offer {
+        address bidder;
+        uint256 id;
+        string bidderId;
+        uint256 listingId;
+        uint256 price;
+        bool isActive;
     }
 
     struct User {
-        address UserAddress;
-        string UserID;
-        uint256[] Items;
-        uint256[] Bids;
+        address walletAddress;
+        string userId;
+        uint256[] listedItems;
+        uint256[] bids;
+        bool isActive;
     }
-    /**
-    Stores details of each item, indexed by its unique ID.
-    */
-    mapping(uint256 => Item) Items;
 
     /**
-    Stores details of bids for each item, using a nested mapping structure.
-        - The outer mapping uses the item ID as the key.
-        - The inner mapping uses a unique bid ID (assigned sequentially) as the key.
-    */
-    mapping(uint256 => mapping(uint256 => Bid)) Bids;
+     * Mapping: Contains the Listings identified by their IDs
+     * Function: Returns the Listing for a given ID
+     */
+    mapping(uint256 => Listing) public listings;
+
+    function getListing(uint256 _listingId)
+        public
+        view
+        returns (Listing memory)
+    {
+        return listings[_listingId];
+    }
 
     /**
-    Stores user information, indexed by their wallet address.
-    */
-    mapping(address => User) Users;
+     * Mapping: Contains the offers for a Listing using a nested mapping structure
+     * The outer mapping uses the Listing ID as the key
+     * The inner mapping uses a unique offer ID
+     * Function: Returns the offer on a listing with ID: _listingId and offer with ID: _offerId
+     */
+    mapping(uint256 => mapping(uint256 => Offer)) public offers;
+
+    function getOffer(uint256 _listingId, uint256 _offerId)
+        public
+        view
+        returns (Offer memory)
+    {
+        return offers[_listingId][_offerId];
+    }
 
     /**
-    Stores the UserIDs, indexed by their wallet address.
-    */
-    mapping(address => string) UserIDs;
+     * Mapping: Contains the registered Users that can be identified with their wallet address
+     * Function: Returns the registered user having address: _walletAddress
+     */
+    mapping(address => User) public users;
+
+    function getUser(address _walletAddress) public view returns (User memory) {
+        return users[_walletAddress];
+    }
 
     /**
-    Stores the current bid number in use for a particular ItemID
-    */
-    mapping(uint256 => uint256) CurrentBidNumber;
+     * Mapping: Contains the registered Users' ID strings that can be identified with their wallet address
+     * Function: Returns the registered user's ID string having address: _walletAddress
+     */
+    mapping(address => string) public userIds;
 
-    event ItemCreated(uint256 ItemID);
-    event BidSuccessful(uint256 ItemID, uint256 currBidNumber);
-    event BidAccepted(uint256 ItemID, uint256 currBidNumber);
-    event UserCreation(string UserID);
+    function getUserID(address _walletAddress)
+        public
+        view
+        returns (string memory)
+    {
+        return userIds[_walletAddress];
+    }
 
     /**
-    Creates a new user with the provided address and UserID.
-        - Requires the caller to be the contract owner (modifier onlyOwner).
-        - Emits a UserCreation event with the user's ID.
-    */
-    function createUser(address _UserAddress, string memory _UserID)
+     * Mapping: Contains the current bid number in use for a particular Listing
+     * Function: Returns the registered user's ID string having address: _walletAddress
+     */
+    mapping(uint256 => uint256) public currentBidNumber;
+
+    event ItemCreated(uint256 itemId);
+    event BidSuccessful(uint256 itemId, uint256 currentBidNumber);
+    event BidAccepted(uint256 itemId, uint256 winningBidId);
+    event UserCreated(string userId);
+
+    function createUser(address _userAddress, string memory _userId)
         external
         onlyOwner
     {
-        Users[_UserAddress] = User(
-            _UserAddress,
-            _UserID,
+        users[_userAddress] = User(
+            _userAddress,
+            _userId,
             new uint256[](0),
-            new uint256[](0)
-        );
-        emit UserCreation(_UserID);
-    }
-
-    /**
-    Creates a new bid for an item with the specified ID and price.
-        - Requires the caller to be the contract owner (modifier onlyOwner).
-        - Increments the current bid number for the item.
-        - Stores the bid details (bidder address, ID, item ID, price, active flag) in the Bids mapping.
-        - Updates the item's current price to the bid price in the Items mapping.
-        - Emits a BidSuccessful event with the item ID and current bid number.
-    */
-    function createBid(
-        address _Bidder,
-        uint256 _ItemID,
-        uint256 _Price
-    ) external payable onlyOwner {
-        uint256 currBidNumber = CurrentBidNumber[_ItemID];
-        CurrentBidNumber[_ItemID]++;
-        Bids[_ItemID][currBidNumber] = Bid(
-            _Bidder,
-            currBidNumber,
-            UserIDs[_Bidder],
-            _ItemID,
-            _Price,
+            new uint256[](0),
             true
         );
-        Items[_ItemID].Price = _Price;
-        emit BidSuccessful(_ItemID, currBidNumber);
+        userIds[_userAddress] = _userId;
+        emit UserCreated(_userId);
     }
 
-    /** 
-    Creates a new item with the provided creator address and price.
-        - Requires the caller to be the contract owner (modifier onlyOwner).
-        - Assigns a unique ID to the item using CurrentItemID.
-        - Stores the item details (creator address, ID, active flag, price, accepted bid ID) in the Items mapping.
-        - Increments CurrentItemID for the next item.
-        - Emits an ItemCreated event with the item's ID.
-    */
-    function createItem(address _Creator, uint256 _Price)
+    function deleteUser(address _userAddress) external onlyOwner {
+        users[_userAddress].isActive = false;
+    }
+
+    function createOffer(
+        address _bidder,
+        uint256 _listingId,
+        uint256 _price
+    ) external payable onlyOwner returns (uint256) {
+        require(users[_bidder].isActive, "User has deleted account");
+        uint256 currBidNumber = currentBidNumber[_listingId];
+        currentBidNumber[_listingId]++;
+        offers[_listingId][currBidNumber] = Offer(
+            _bidder,
+            currBidNumber,
+            userIds[_bidder],
+            _listingId,
+            _price,
+            true
+        );
+        listings[_listingId].price = _price;
+        users[_bidder].bids.push(_listingId);
+        emit BidSuccessful(_listingId, currBidNumber);
+        return currBidNumber;
+    }
+
+    function createListing(address _seller, uint256 _price)
         external
         payable
         onlyOwner
     {
-        uint256 currItemNumber = CurrentItemID;
-        CurrentItemID++;
-        Items[currItemNumber] = Item(_Creator, currItemNumber, true, _Price, 0);
-        emit ItemCreated(currItemNumber);
+        uint256 listingId = nextItemId;
+        nextItemId++;
+        listings[listingId] = Listing(_seller, listingId, true, _price, 0);
+        users[_seller].listedItems.push(listingId);
+        emit ItemCreated(listingId);
     }
 
-    /**
-    Marks an item proposal as fulfilled and transfers the payment to the seller.
-        - Requires the caller to be the contract owner (modifier onlyOwner).
-        - Prevents reentrancy attacks using the ReentrancyGuard modifier.
-        - Validates the item ID and ensures the item is still active.
-        - Checks if the contract balance is sufficient to cover the item price.
-        - Transfers the item price from the contract to the seller's address.
-        - Sets the item's active flag to false in the Items mapping.
-        - Updates the accepted bid ID in the Items mapping with the provided _BidID.
-        - Emits a BidAccepted event with the item ID and accepted bid ID.
-    */
-    function fulfillItem(uint256 _ItemID, uint256 _BidID)
+    function fulfillListing(uint256 _listingId, uint256 _offerId)
         external
         onlyOwner
-        ReentrancyGuard
+        reentrancyGuard
     {
-        require(_ItemID > 0 && _ItemID < CurrentItemID, "Invalid Item ID");
-        require(Items[_ItemID].IsActive, "Proposal is already fulfilled");
         require(
-            getContractBalance() > Items[_ItemID].Price,
-            "Not enough balance!!"
+            _listingId > 0 && _listingId < nextItemId,
+            "Invalid listing ID"
         );
-        // Transfer fare from contract to the seller (Item creator)
+        require(listings[_listingId].isActive, "Listing already fulfilled");
         require(
-            payable(Items[_ItemID].SellerAddress).send(Items[_ItemID].Price),
-            "Failed to transfer the Bid amount to the seller!!"
+            getContractBalance() > listings[_listingId].price,
+            "Insufficient funds!"
+        );
+        // Transfer fare from contract to the seller (Listing creator)
+        require(
+            payable(listings[_listingId].seller).send(
+                listings[_listingId].price
+            ),
+            "Failed to transfer the offer amount to the seller!"
         );
 
-        Items[_ItemID].IsActive = false;
+        listings[_listingId].isActive = false;
+        listings[_listingId].winningBidId = _offerId;
 
-        emit BidAccepted(_ItemID, _BidID);
+        emit BidAccepted(_listingId, _offerId);
     }
+
     /**
-    Retrieves the current balance of the contract.
-        - Requires the caller to be the contract owner (modifier onlyOwner).
-        - Returns the contract's balance in Wei. 
-    */
+     * Retrieves the current balance of the contract.
+     * Requires the caller to be the contract owner (modifier onlyOwner).
+     * Returns the contract's balance in Wei.
+     */
     function getContractBalance() public view onlyOwner returns (uint256) {
         return address(this).balance;
     }
 
     /**
-    WARNING: This function is for development purposes only and should be removed in production.
-        - Allows the contract owner to withdraw the entire contract balance.
-        - Requires the caller to be the contract owner (modifier onlyOwner).
-        - Transfers the contract's balance to the owner's address.
-    */
+     * WARNING: This function is for development purposes only and should be removed in production.
+     * Allows the contract owner to withdraw the entire contract balance.
+     * Requires the caller to be the contract owner (modifier onlyOwner).
+     * Transfers the contract's balance to the owner's address.
+     */
     function returnBalance() external onlyOwner {
         uint256 currBal = getContractBalance();
         require(
-            payable(owner).send(currBal),
+            payable(contractOwner).send(currBal),
             "Failed to transfer current balance"
         );
     }

@@ -1,15 +1,19 @@
 import mongoose from "mongoose";
 
 const BidModel = mongoose.Schema({
+  BidderAddress: {
+    type: String,
+    required: true,
+  },
   BidID: {
     type: String,
     required: true,
   },
-  ItemID: {
+  BidderID: {
     type: String,
-    required: true,
+    required: true
   },
-  UserID: {
+  ItemID: {
     type: String,
     required: true,
   },
