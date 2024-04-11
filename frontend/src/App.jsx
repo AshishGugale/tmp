@@ -1,13 +1,10 @@
 import { useState } from "react";
 import "./App.css";
-import Navbar from "./components/Navbar";
-import Accordion from "./components/Accordion";
-
+import Homepage from "./components/Homepage";
 function App() {
   return (
     <>
-      <Navbar />
-      <Accordion />
+      <Homepage />
     </>
   );
 }

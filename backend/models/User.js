@@ -1,11 +1,7 @@
 import mongoose from "mongoose";
 
 const UserModel = mongoose.Schema({
-  Username: {
-    type: String,
-    required: true,
-  },
-  ID: {
+  Address: {
     type: String,
     required: true,
   },
@@ -16,6 +12,10 @@ const UserModel = mongoose.Schema({
   Bids: {
     type: [Object],
     default: [],
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 });
 
