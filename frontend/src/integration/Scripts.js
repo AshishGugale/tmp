@@ -1,14 +1,21 @@
 import { ethers } from "ethers";
 
-const contractAddress = import.meta.env.VITE_contractAddress;
+const contractAddress = import.meta.env.VITE_CONTRACT;
 const RPC = import.meta.env.VITE_RPC;
 
 const abi = [
   "function createUser() public",
-  "function createOffer(address _bidder, string memory _bidId, string memory _listingId, uint256 _price) public payable",
-  "function createListing(uint256 _price, string memory _listingId) public",
+  "function createOffer(uint256 _listingId, uint256 _price) public payable",
+  "function createListing(uint256 _price) public",
   "function deleteUser(address _userAddress) external",
-  "function fulfillListing(string memory _listingId, string memory _offerId) public",
+  "function fulfillListing(uint256 _listingId) public",
+  "event ItemCreated(address indexed seller, uint256 indexed itemId, uint256 indexed price)",
+  "event BidSuccessful(address indexed bidder, uint256 indexed itemId, uint256 indexed bidId)",
+  "event BidAccepted(uint256 indexed itemId, uint256 indexed winningBidId, uint256 indexed price)",
+  "event UserCreated(address indexed userId)",
+  "event UserDeleted(address indexed userId)",
+  "function isValidUser() public view returns (bool)",
+  "function getListingPrice(uint256 _listingId) public view returns (uint256)",
 ];
 
 const getWeb3 = async () => {
@@ -31,23 +38,21 @@ const getWeb3 = async () => {
   }
 };
 
-const web3Object = await getWeb3();
+export const web3Object = await getWeb3();
 const contractInstance = web3Object.contractInstance;
 const provider = web3Object.provider;
 export const walletAddress = web3Object.address;
-const rpcProvider = new ethers.JsonRpcProvider(RPC);
+
+export const rpcProvider = new ethers.JsonRpcProvider(RPC);
 /**
  * WARNING: Development only function, add deadlines in Production
  * Fulfills the listing with the given ID, can only be done by the listing creator
  * @param {String} _listingId
  * @param {String} _offerId
  */
-export async function FulfillListingOnChain(_listingId, _offerId) {
+export async function FulfillListingOnChain(_listingId) {
   try {
-    const transaction = await contractInstance.fulfillListing(
-      _listingId,
-      _offerId
-    );
+    const transaction = await contractInstance.fulfillListing(_listingId);
     transaction.wait().then(() => {
       console.log("Listing Fulfilled!!");
     });
@@ -55,7 +60,17 @@ export async function FulfillListingOnChain(_listingId, _offerId) {
     console.log("Error in Fulfilling the listing: ", err);
   }
 }
-
+/**
+ * Instantaneous hai ye toh no need to perform transaction.wait()!!
+ */
+export async function checkValidUser() {
+  try {
+    const transaction = await contractInstance.isValidUser();
+    return transaction;
+  } catch (err) {
+    console.log(err);
+  }
+}
 /**
  * Creates an user on-chain
  */
@@ -74,31 +89,23 @@ export async function CreateUserOnChain() {
  * @param {Number} _price
  * @param {String} _listingId
  */
-export async function CreateListingOnChain(_price, _listingId) {
+export async function CreateListingOnChain(_price) {
   try {
-    _price *= 1000;
-    const PriceInWei = parseUnits(_price.toString(), "gwei");
-    const transaction = await contractInstance.createListing(
-      PriceInWei,
-      _listingId
-    );
-    transaction.wait().then(() => {
-      console.log("Created Item!!");
-    });
+    const PriceInWei = ethers.parseUnits(_price.toString(), "gwei");
+    const transaction = await contractInstance.createListing(PriceInWei);
+    transaction.wait();
   } catch (err) {
-    console.log("Error in Item creation: ", err);
+    return err;
   }
 }
 
-export async function CreateOfferOnChain(bidder, bidId, _listingId, Price) {
+export async function CreateOfferOnChain(_listingId, Price) {
   try {
-    const PriceInWei = parseUnits(Price.toString(), "gwei");
+    const PriceInGWei = ethers.parseUnits(Price.toString(), "gwei");
     const transaction = await contractInstance.createOffer(
-      bidder,
-      bidId,
       _listingId,
-      PriceInWei,
-      { value: PriceInWei }
+      PriceInGWei,
+      { value: PriceInGWei }
     );
     transaction.wait().then(() => {
       console.log("Created Bid!!");
@@ -136,6 +143,27 @@ export async function getLogs(eventSignature, topics = []) {
     topics: [ethers.id(eventSignature), ...topics],
     removed: false,
   });
-  console.log(logs);
   return logs;
+}
+
+export async function EventListener(eventSignature, topics = []) {
+  contractInstance.on(
+    {
+      address: contractAddress,
+      topics: [ethers.id(eventSignature), ...topics],
+    },
+    (from, to, _amount, event) => {
+      console.log(event);
+      return event;
+    }
+  );
+}
+
+export async function getPrice(_listingId) {
+  try {
+    const price = await contractInstance.getListingPrice(_listingId);
+    return price;
+  } catch (err) {
+    console.log("Error in price retrieval: ", err);
+  }
 }
