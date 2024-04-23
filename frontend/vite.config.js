@@ -8,5 +8,15 @@ export default defineConfig({
     supported: {
       'top-level-await': true //browsers can handle top-level-await features
     },
-  }
+  },
+  preview: {
+    port: 8080,
+    strictPort: true,
+   },
+   server: {
+    port: 8080,
+    strictPort: true,
+    host: true,
+    origin: "http://0.0.0.0:8080",
+   },
 })
