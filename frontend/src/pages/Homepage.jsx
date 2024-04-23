@@ -1,7 +1,6 @@
 import React from "react";
 import Navbar from "../components/Navbar.jsx";
 import SiderFunction from "../components/Sider.jsx";
-import Content from "../components/Content.jsx";
 import Footer from "../components/Footer.jsx";
 
 import { Layout } from "antd";

@@ -14,7 +14,20 @@ import {
   walletAddress,
   CreateUserOnChain,
 } from "../integration/Scripts.js";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+} from "@clerk/clerk-react";
 
+import { ClerkProvider } from "@clerk/clerk-react";
+
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!PUBLISHABLE_KEY) {
+  throw new Error("Missing Publishable Key");
+}
 const Header = Layout.Header;
 
 const Navbar = () => {
@@ -66,6 +79,14 @@ const Navbar = () => {
           SunStream <ThunderboltFilled style={{ color: "blue" }} />
         </div>
         <div style={{ display: "flex", gap: "20px", margin: "0px 20px" }}>
+          <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+            <SignedOut>
+              <SignInButton />
+            </SignedOut>
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
+          </ClerkProvider>
           {isValid ? (
             <Tooltip title={walletAddress} placement="left">
               <UserOutlined />
@@ -79,16 +100,20 @@ const Navbar = () => {
               Create User
             </Button>
           )}
-          <a href="" target="blank" style={{ color: 'inherit' }}>
+          <a href="" target="blank" style={{ color: "inherit" }}>
             <HomeFilled />
           </a>
-          <a href="" target="blank" style={{ color: 'inherit' }}>
+          <a href="" target="blank" style={{ color: "inherit" }}>
             <InfoCircleOutlined />
           </a>
           <a href="" target="blank">
             <LinkedinFilled />
           </a>
-          <a href="https://github.com/AshishGugale/SunStream" target="blank" style={{ color: 'inherit' }}>
+          <a
+            href="https://github.com/AshishGugale/SunStream"
+            target="blank"
+            style={{ color: "inherit" }}
+          >
             <GithubFilled />
           </a>
         </div>

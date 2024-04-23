@@ -1,3 +1,4 @@
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -7,8 +8,8 @@ contract Auction {
     using SafeMath for uint256;
 
     address public contractOwner;
-    uint256 public nextItemId;
     bool public locked;
+    uint256 internal currentListingNumber;
 
     modifier onlyOwner() {
         require(
@@ -27,8 +28,8 @@ contract Auction {
 
     constructor() {
         contractOwner = msg.sender;
-        nextItemId = 1;
         locked = false;
+        currentListingNumber = 1;
     }
 
     struct Listing {
@@ -37,12 +38,12 @@ contract Auction {
         bool isActive;
         uint256 price;
         uint256 winningBidId;
+        
     }
 
     struct Offer {
         address bidder;
         uint256 id;
-        string bidderId;
         uint256 listingId;
         uint256 price;
         bool isActive;
@@ -50,7 +51,6 @@ contract Auction {
 
     struct User {
         address walletAddress;
-        string userId;
         uint256[] listedItems;
         uint256[] bids;
         bool isActive;
@@ -58,17 +58,8 @@ contract Auction {
 
     /**
      * Mapping: Contains the Listings identified by their IDs
-     * Function: Returns the Listing for a given ID
      */
     mapping(uint256 => Listing) public listings;
-
-    function getListing(uint256 _listingId)
-        public
-        view
-        returns (Listing memory)
-    {
-        return listings[_listingId];
-    }
 
     /**
      * Mapping: Contains the offers for a Listing using a nested mapping structure
@@ -97,93 +88,91 @@ contract Auction {
     }
 
     /**
-     * Mapping: Contains the registered Users' ID strings that can be identified with their wallet address
-     * Function: Returns the registered user's ID string having address: _walletAddress
-     */
-    mapping(address => string) public userIds;
-
-    function getUserID(address _walletAddress)
-        public
-        view
-        returns (string memory)
-    {
-        return userIds[_walletAddress];
-    }
-
-    /**
      * Mapping: Contains the current bid number in use for a particular Listing
      * Function: Returns the registered user's ID string having address: _walletAddress
      */
     mapping(uint256 => uint256) public currentBidNumber;
 
-    event ItemCreated(uint256 itemId);
-    event BidSuccessful(uint256 itemId, uint256 currentBidNumber);
-    event BidAccepted(uint256 itemId, uint256 winningBidId);
-    event UserCreated(string userId);
+    event ItemCreated(address indexed seller, uint256 indexed itemId, uint256 indexed price);
+    event BidSuccessful(address indexed bidder, uint256 indexed itemId, uint256 indexed bidId);
+    event BidAccepted(uint256 indexed itemId, uint256 indexed winningBidId, uint256 indexed price);
+    event UserCreated(address indexed userId);
+    event UserDeleted(address indexed userId);
 
-    function createUser(address _userAddress, string memory _userId)
-        external
-        onlyOwner
+    function createUser()
+        public
     {
+        address _userAddress = msg.sender;
+        require(!users[_userAddress].isActive, "User already exists!!");
         users[_userAddress] = User(
             _userAddress,
-            _userId,
             new uint256[](0),
             new uint256[](0),
             true
         );
-        userIds[_userAddress] = _userId;
-        emit UserCreated(_userId);
+        emit UserCreated(_userAddress);
     }
 
-    function deleteUser(address _userAddress) external onlyOwner {
+    function deleteUser(address _userAddress) external {
+        require(msg.sender == _userAddress, "Only the user can delete his ID!!");
+        require(users[_userAddress].isActive, "User does not exist");
         users[_userAddress].isActive = false;
+        emit UserDeleted(_userAddress);
     }
 
     function createOffer(
-        address _bidder,
         uint256 _listingId,
         uint256 _price
-    ) external payable onlyOwner returns (uint256) {
-        require(users[_bidder].isActive, "User has deleted account");
-        uint256 currBidNumber = currentBidNumber[_listingId];
-        currentBidNumber[_listingId]++;
-        offers[_listingId][currBidNumber] = Offer(
+    ) public 
+      payable reentrancyGuard{
+        address _bidder = msg.sender;
+        require(users[_bidder].isActive, "User does not exist");
+        require(_listingId < currentListingNumber && _listingId >= 0, "This listing does not exist");
+        require(listings[_listingId].isActive, "This listing has already been fulfilled");
+        require(listings[_listingId].price < _price, "Bid must be of a higher price!!");
+        uint256 _bidId = ++currentBidNumber[_listingId];
+        offers[_listingId][_bidId] = Offer(
             _bidder,
-            currBidNumber,
-            userIds[_bidder],
+            _bidId,
             _listingId,
             _price,
             true
         );
         listings[_listingId].price = _price;
+        listings[_listingId].winningBidId = _bidId;
         users[_bidder].bids.push(_listingId);
-        emit BidSuccessful(_listingId, currBidNumber);
-        return currBidNumber;
+        emit BidSuccessful(_bidder, _listingId, _bidId);
     }
 
-    function createListing(address _seller, uint256 _price)
-        external
-        payable
-        onlyOwner
+    function createListing(uint256 _price)
+        public
     {
-        uint256 listingId = nextItemId;
-        nextItemId++;
-        listings[listingId] = Listing(_seller, listingId, true, _price, 0);
-        users[_seller].listedItems.push(listingId);
-        emit ItemCreated(listingId);
+        uint256 _listingId = currentListingNumber++;
+        address _seller = msg.sender;
+        require(users[_seller].isActive, "User does not exist");
+        listings[_listingId] = Listing(_seller, _listingId, true, _price, currentListingNumber);
+        users[_seller].listedItems.push(_listingId);
+        emit ItemCreated(_seller, _listingId, _price);
     }
 
-    function fulfillListing(uint256 _listingId, uint256 _offerId)
-        external
-        onlyOwner
+    /**
+     * Get the current price of a listing
+     */
+    function getListingPrice(uint256 _listingId) public view returns (uint256){
+        return listings[_listingId].price;
+    }
+
+    /**
+     * Fulfill the listing given by _listingId
+     * Transfer funds to the seller and marked listing inactive
+     */
+    function fulfillListing(uint256 _listingId)
+        public
         reentrancyGuard
     {
-        require(
-            _listingId > 0 && _listingId < nextItemId,
-            "Invalid listing ID"
-        );
-        require(listings[_listingId].isActive, "Listing already fulfilled");
+        require(msg.sender == listings[_listingId].seller, "Only the seller can trigger this!!");
+        require(listings[_listingId].winningBidId > 0, "No one has bid on this yet!!");
+        require(listings[_listingId].isActive, "Listing either does not exist of is already fulfilled");
         require(
             getContractBalance() > listings[_listingId].price,
             "Insufficient funds!"
@@ -197,9 +186,8 @@ contract Auction {
         );
 
         listings[_listingId].isActive = false;
-        listings[_listingId].winningBidId = _offerId;
 
-        emit BidAccepted(_listingId, _offerId);
+        emit BidAccepted(_listingId, listings[_listingId].winningBidId, listings[_listingId].price);
     }
 
     /**
@@ -209,6 +197,13 @@ contract Auction {
      */
     function getContractBalance() public view onlyOwner returns (uint256) {
         return address(this).balance;
+    }
+
+    /**
+     * Returns boolean value denoting the validity of an user
+     */
+    function isValidUser() public view returns (bool){
+        return users[msg.sender].isActive;
     }
 
     /**
