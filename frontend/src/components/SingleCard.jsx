@@ -40,25 +40,33 @@ function SingleCard({ prop1 }) {
 
   async function handleBid() {
     try {
-      await CreateOfferOnChain(parseInt(prop1.topics[2], 16), 1000000);
-      api.success({
-        message: "Success in Bid creation",
-        description: `Successfully created bid on ${prop1.transactionHash}`,
-        className: "custom-class",
-        style: {
-          width: 600,
-        },
-        duration: "1.5",
-      });
+      const err = await CreateOfferOnChain(parseInt(prop1.topics[2], 16), 1000000);
+      if(!err)
+        api.success({
+          message: "Success in Bid submission",
+          description: `Successfully created bid on ${prop1.transactionHash}!`,
+          className: "custom-class",
+          style: {
+            width: 600,
+          },
+          duration: "100",
+        });
+      throw err;
     } catch (err) {
+      console.log(err);
+      let response;
+      if (err.revert)
+        response = err.revert.args;
+      else
+        response = "Error occured in obtaining Metamask signature!";
       api.error({
-        message: "Error",
-        description: `${err.message}`,
+        message: "Error in Bid creation",
+        description: response,
         className: "custom-class",
         style: {
           width: 600,
         },
-        duration: "5",
+        duration: "100",
       });
     }
   }

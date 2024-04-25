@@ -14,35 +14,23 @@ const App = () => {
   } = theme.useToken();
   const [price, setPrice] = useState(0);
   const [api, contextHolder] = notification.useNotification();
-  const openNotificationError = () => {
-    api.error({
-      message: `Notification ${placement}`,
-      description: <Context.Consumer>{() => `Hello!!`}</Context.Consumer>,
-      placement: "topRight",
-    });
-  };
-  const openNotificationSuccess = () => {
-    api.success({
-      message: `Notificatio`,
-      description: <Context.Consumer>{() => `Hello!!`}</Context.Consumer>,
-      placement: "topRight",
-    });
-  };
-  const contextValue = useMemo(
-    () => ({
-      name: "Ant Design",
-    }),
-    []
-  );
+
   async function handleCreateListing() {
     try {
       if (price === 0) return;
       const tx = await CreateListingOnChain(price);
       if (tx) {
-        console.log("triedd");
-        openNotificationError();
+        api.error({
+          message: `Notification`,
+          description: "",
+          placement: "topRight",
+        });
       } else {
-        openNotificationSuccess();
+        api.success({
+          message: "Success in listing creation!!",
+          description: "",
+          placement: "topRight",
+        });
         navigate("/");
       }
       setPrice(0);
@@ -55,7 +43,7 @@ const App = () => {
     setPrice(newPrice);
   };
   return (
-    <Context.Provider value={contextValue}>
+    <>
       {contextHolder}
       <Content
         style={{
@@ -111,7 +99,7 @@ const App = () => {
           </Form.Item>
         </Form>
       </Content>
-    </Context.Provider>
+    </>
   );
 };
 export default App;

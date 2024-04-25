@@ -77,11 +77,9 @@ export async function checkValidUser() {
 export async function CreateUserOnChain() {
   try {
     const transaction = await contractInstance.createUser();
-    transaction.wait().then(() => {
-      console.log("Created User!!");
-    });
+    transaction.wait();
   } catch (err) {
-    console.log("Error in User creation: ", err);
+    return err;
   }
 }
 /**
@@ -110,8 +108,9 @@ export async function CreateOfferOnChain(_listingId, Price) {
     transaction.wait().then(() => {
       console.log("Created Bid!!");
     });
+    return;
   } catch (err) {
-    console.log("Error in Bid Creation: ", err);
+    return err;
   }
 }
 
@@ -146,15 +145,11 @@ export async function getLogs(eventSignature, topics = []) {
   return logs;
 }
 
-export async function EventListener(eventSignature, topics = []) {
-  contractInstance.on(
-    {
-      address: contractAddress,
-      topics: [ethers.id(eventSignature), ...topics],
-    },
+export async function UserCreatedEventListener() {
+  contractInstance.on("UserCreated",
     (from, to, _amount, event) => {
-      console.log(event);
-      return event;
+      console.log(to);
+      return (from === walletAddress);
     }
   );
 }

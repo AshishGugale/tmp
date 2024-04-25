@@ -8,28 +8,17 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { NavbarStyle } from "../styles/Styles";
-import { Layout, theme, Button, notification, Tooltip } from "antd";
+import { Layout, theme, Button, notification, Tooltip, Skeleton } from "antd";
 import {
   checkValidUser,
   walletAddress,
   CreateUserOnChain,
+  UserCreatedEventListener,
+  web3Object,
 } from "../integration/Scripts.js";
-import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  UserButton,
-} from "@clerk/clerk-react";
 
-import { ClerkProvider } from "@clerk/clerk-react";
-
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
-if (!PUBLISHABLE_KEY) {
-  throw new Error("Missing Publishable Key");
-}
 const Header = Layout.Header;
-
+const contractInstance = web3Object.contractInstance;
 const Navbar = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
@@ -37,6 +26,7 @@ const Navbar = () => {
   const [api, contextHolder] = notification.useNotification();
   const [isValid, setIsValid] = useState(false);
   const [userCreation, setUserCreation] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function check() {
@@ -47,7 +37,9 @@ const Navbar = () => {
 
   const createAccountHandler = async () => {
     try {
+      setLoading(true);
       const tx = await CreateUserOnChain();
+      if (tx) throw tx;
       api.success({
         message: "Request sent successfully",
         description: `Request for user account creation successfully submitted and is in queue!!`,
@@ -57,40 +49,44 @@ const Navbar = () => {
         },
         duration: "1.5",
       });
-      setUserCreation(!userCreation);
+      contractInstance.on("UserCreated", (from, to, _amount, event) => {
+        if (from === walletAddress) {
+          setLoading(false);
+          setUserCreation(!userCreation);
+        }
+      });
     } catch (err) {
-      console.log(err);
+      let response;
+      if (err.revert) response = err.revert.args;
+      else response = "Error occured in obtaining Metamask signature!";
       api.error({
-        message: "Error",
-        description: `Error`,
+        message: "Error in user account creation",
+        description: response,
         className: "custom-class",
         style: {
           width: 600,
         },
-        duration: "5",
+        duration: "100",
       });
     }
   };
 
   return (
     <Header style={NavbarStyle(colorBgContainer, borderRadiusLG)}>
+      {contextHolder}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div style={{ marginLeft: "20px", fontWeight: "bold" }}>
           SunStream <ThunderboltFilled style={{ color: "blue" }} />
         </div>
         <div style={{ display: "flex", gap: "20px", margin: "0px 20px" }}>
-          <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-            <SignedOut>
-              <SignInButton />
-            </SignedOut>
-            <SignedIn>
-              <UserButton />
-            </SignedIn>
-          </ClerkProvider>
           {isValid ? (
             <Tooltip title={walletAddress} placement="left">
               <UserOutlined />
             </Tooltip>
+          ) : loading ? (
+            <Button type="primary" style={{ alignSelf: "center" }}>
+              User Creation is Progress!!
+            </Button>
           ) : (
             <Button
               type="primary"
