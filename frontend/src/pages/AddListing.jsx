@@ -1,11 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState} from "react";
 import { Form, Input, theme, Layout, Button, notification } from "antd";
 import { CreateListingOnChain } from "../integration/Scripts";
 import { useNavigate } from "react-router-dom";
 const Content = Layout.Content;
-const Context = React.createContext({
-  name: "Default",
-});
 
 const App = () => {
   const navigate = useNavigate();

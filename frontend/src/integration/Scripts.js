@@ -18,7 +18,11 @@ const abi = [
   "function getListingPrice(uint256 _listingId) public view returns (uint256)",
 ];
 
-const getWeb3 = async () => {
+/**
+ * Checks for the browser provider and sends a request to the Metamask provider
+ * @returns contractInstance, walletProvider, walletAddress
+ */
+async function getWeb3() {
   try {
     if (typeof window.ethereum !== "undefined") {
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -36,19 +40,17 @@ const getWeb3 = async () => {
   } catch (err) {
     console.log(err);
   }
-};
+}
 
 export const web3Object = await getWeb3();
 const contractInstance = web3Object.contractInstance;
-const provider = web3Object.provider;
 export const walletAddress = web3Object.address;
 
 export const rpcProvider = new ethers.JsonRpcProvider(RPC);
 /**
- * WARNING: Development only function, add deadlines in Production
- * Fulfills the listing with the given ID, can only be done by the listing creator
+ * WARNING: Development only function, add deadlines in production and fulfills
+ * the listing with the given ID, can only be done by the listing creator
  * @param {String} _listingId
- * @param {String} _offerId
  */
 export async function FulfillListingOnChain(_listingId) {
   try {
@@ -60,8 +62,10 @@ export async function FulfillListingOnChain(_listingId) {
     console.log("Error in Fulfilling the listing: ", err);
   }
 }
+
 /**
- * Instantaneous hai ye toh no need to perform transaction.wait()!!
+ * Function to check the validity of a user
+ * @returns Boolean value referring to the user's validity
  */
 export async function checkValidUser() {
   try {
@@ -71,8 +75,10 @@ export async function checkValidUser() {
     console.log(err);
   }
 }
+
 /**
  * Creates an user on-chain
+ * @returns Error object for further error handling
  */
 export async function CreateUserOnChain() {
   try {
@@ -82,10 +88,10 @@ export async function CreateUserOnChain() {
     return err;
   }
 }
+
 /**
- * Create a new listing on-chain
- * @param {Number} _price
- * @param {String} _listingId
+ * Create a new listing on-chain with the given initial listing price
+ * @param {Number} _price Initial listing price
  */
 export async function CreateListingOnChain(_price) {
   try {
@@ -97,6 +103,13 @@ export async function CreateListingOnChain(_price) {
   }
 }
 
+/**
+ * WARNING: Testing needed....
+ * Creates a bid on the listing
+ * @param {*} _listingId The Listing to bid on
+ * @param {*} Price Bidding Price
+ * @returns Error object if any
+ */
 export async function CreateOfferOnChain(_listingId, Price) {
   try {
     const PriceInGWei = ethers.parseUnits(Price.toString(), "gwei");
@@ -115,7 +128,7 @@ export async function CreateOfferOnChain(_listingId, Price) {
 }
 
 /**
- *
+ * Deletes the given user from the mapping by setting isActive false
  * @param {String} userAddress
  */
 export async function DeleteUserOnChain(userAddress) {
@@ -131,8 +144,8 @@ export async function DeleteUserOnChain(userAddress) {
 /**
  * Get the Event Logs for some filters
  * @param {String} eventSignature Event signature in the format: eventname(typeofparam1, typeofparam2...)
- * @param {Array} topics filters to be applied, set to null if wildcard acceptance needed
- *
+ * @param {Array} topics Filters to be applied, set to null if wildcard acceptance needed
+ * @returns Returns the logs obtained
  */
 export async function getLogs(eventSignature, topics = []) {
   const logs = await rpcProvider.getLogs({
@@ -145,15 +158,22 @@ export async function getLogs(eventSignature, topics = []) {
   return logs;
 }
 
+/**
+ * Event listener to trigger rendering of Create User button
+ * @returns Boolean value whether the given User Creation event has emanated for the given user
+ */
 export async function UserCreatedEventListener() {
-  contractInstance.on("UserCreated",
-    (from, to, _amount, event) => {
-      console.log(to);
-      return (from === walletAddress);
-    }
-  );
+  contractInstance.on("UserCreated", (from, to, _amount, event) => {
+    console.log(to);
+    return from === walletAddress;
+  });
 }
 
+/**
+ * Returns the price of a particular listing
+ * @param {*} _listingId 
+ * @returns The price of the listing
+ */
 export async function getPrice(_listingId) {
   try {
     const price = await contractInstance.getListingPrice(_listingId);

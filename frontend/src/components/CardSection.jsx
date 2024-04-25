@@ -1,12 +1,7 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import SingleCard from "./SingleCard";
-import { Card, Skeleton, notification } from "antd";
-import {
-  getLogs,
-  CreateListingOnChain,
-  CreateUserOnChain,
-  web3Object
-} from "../integration/Scripts.js";
+import { Skeleton } from "antd";
+import { getLogs, web3Object } from "../integration/Scripts.js";
 import { CardSectionStyle, CardFlexStyle } from "../styles/Styles.js";
 
 const CardSection = () => {
@@ -24,12 +19,14 @@ const CardSection = () => {
     getAndSetData();
   }, [changed]);
 
-  
   async function EventListener() {
-    web3Object.contractInstance.on("ItemCreated", (from, to, _amount, event) => {
-      console.log(event);
-      setChanged(!changed);
-    });
+    web3Object.contractInstance.on(
+      "ItemCreated",
+      (from, to, _amount, event) => {
+        console.log(event);
+        setChanged(!changed);
+      }
+    );
   }
 
   EventListener();

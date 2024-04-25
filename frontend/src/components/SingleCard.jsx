@@ -5,8 +5,7 @@ import {
   DollarTwoTone,
 } from "@ant-design/icons";
 import { Avatar, Card, Skeleton, notification, Tooltip } from "antd";
-import { CreateOfferOnChain } from "../integration/Scripts.js";
-import { web3Object, getPrice } from "../integration/Scripts.js";
+import { CreateOfferOnChain, web3Object, getPrice } from "../integration/Scripts.js";
 import { ethers } from "ethers";
 
 const { Meta } = Card;

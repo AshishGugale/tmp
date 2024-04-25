@@ -8,12 +8,11 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { NavbarStyle } from "../styles/Styles";
-import { Layout, theme, Button, notification, Tooltip, Skeleton } from "antd";
+import { Layout, theme, Button, notification, Tooltip} from "antd";
 import {
   checkValidUser,
   walletAddress,
   CreateUserOnChain,
-  UserCreatedEventListener,
   web3Object,
 } from "../integration/Scripts.js";
 

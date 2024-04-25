@@ -1,9 +1,7 @@
-import React from 'react'
+import React from "react";
 
 const CreateBid = () => {
-  return (
-    <div>CreateBid</div>
-  )
-}
+  return <div>CreateBid</div>;
+};
 
-export default CreateBid
+export default CreateBid;
