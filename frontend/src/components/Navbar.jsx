@@ -4,7 +4,6 @@ import {
   LinkedinFilled,
   GithubFilled,
   HomeFilled,
-  InfoCircleOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { NavbarStyle } from "../styles/Styles";
@@ -95,13 +94,10 @@ const Navbar = () => {
               Create User
             </Button>
           )}
-          <a href="" target="blank" style={{ color: "inherit" }}>
+          <a href="/" target="blank" style={{ color: "inherit" }}>
             <HomeFilled />
           </a>
-          <a href="" target="blank" style={{ color: "inherit" }}>
-            <InfoCircleOutlined />
-          </a>
-          <a href="" target="blank">
+          <a href="https://www.linkedin.com/in/ashish-gugale-525b77227/" target="blank">
             <LinkedinFilled />
           </a>
           <a

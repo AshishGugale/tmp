@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import SingleCard from "./SingleCard";
-import { Skeleton } from "antd";
+import { Skeleton, Space } from "antd";
 import { getLogs, web3Object } from "../integration/Scripts.js";
-import { CardSectionStyle, CardFlexStyle } from "../styles/Styles.js";
+import {CardFlexStyle } from "../styles/Styles.js";
 
 const CardSection = () => {
   const [data, setData] = useState([]);
@@ -19,17 +19,15 @@ const CardSection = () => {
     getAndSetData();
   }, [changed]);
 
-  async function EventListener() {
-    web3Object.contractInstance.on(
-      "ItemCreated",
-      (from, to, _amount, event) => {
-        console.log(event);
-        setChanged(!changed);
-      }
-    );
-  }
-
-  EventListener();
+  useEffect(() => {
+    const listener = (from, to, _amount, event) => {
+      setChanged(!changed);
+    }  
+    web3Object.contractInstance.on("ItemCreated", listener);
+    return () => {
+      web3Object.contractInstance.off("ItemCreated", listener);
+    }
+  }, []);
 
   const renderCards = () => {
     if (!data.length && !isLoading) {
@@ -40,13 +38,13 @@ const CardSection = () => {
         {isLoading ? (
           <Skeleton active></Skeleton>
         ) : (
-          <div className="grid-container" style={CardSectionStyle}>
+          <Space size={[8, 16]} wrap>
             {data.map((dataItem, index) => (
               <div key={index} className="card-item" style={CardFlexStyle}>
                 <SingleCard prop1={dataItem} />
               </div>
             ))}
-          </div>
+          </Space>
         )}
       </>
     );

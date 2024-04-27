@@ -12,6 +12,12 @@ import { useNavigate } from "react-router-dom";
 const Sider = Layout.Sider;
 
 const SiderFunction = () => {
+  const queryString = window.location.pathname;
+  let selected;
+  if (queryString.length == 1) selected = "1";
+  else if (queryString[1] == "a") selected = "2";
+  else if (queryString[1] == "s") selected = "3";
+  else if (queryString[1] == "m") selected = "4";
   const vals = ["Dashboard", "Add Listing", "Statistics", "My Data"];
   const items = [
     UnorderedListOutlined,
@@ -27,7 +33,7 @@ const SiderFunction = () => {
   const navigate = useNavigate();
   function handleNavigate(path) {
     if (path === "Dashboard") {
-      navigate('/');
+      navigate("/");
       return;
     }
     const pthLower = path.split(" ").filter(Boolean).join("").toLowerCase();
@@ -40,7 +46,7 @@ const SiderFunction = () => {
       <Menu
         theme="dark"
         mode="inline"
-        defaultSelectedKeys={["1"]}
+        defaultSelectedKeys={[selected]}
         items={items}
         style={{
           marginTop: "15px",

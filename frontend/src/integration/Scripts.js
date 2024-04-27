@@ -38,7 +38,7 @@ async function getWeb3() {
       alert("No metamask found!!");
     }
   } catch (err) {
-    console.log(err);
+    return err;
   }
 }
 
@@ -55,11 +55,10 @@ export const rpcProvider = new ethers.JsonRpcProvider(RPC);
 export async function FulfillListingOnChain(_listingId) {
   try {
     const transaction = await contractInstance.fulfillListing(_listingId);
-    transaction.wait().then(() => {
-      console.log("Listing Fulfilled!!");
-    });
+    transaction.wait();
+    return;
   } catch (err) {
-    console.log("Error in Fulfilling the listing: ", err);
+    return err;
   }
 }
 
@@ -71,9 +70,7 @@ export async function checkValidUser() {
   try {
     const transaction = await contractInstance.isValidUser();
     return transaction;
-  } catch (err) {
-    console.log(err);
-  }
+  } catch (err) {}
 }
 
 /**
@@ -104,7 +101,6 @@ export async function CreateListingOnChain(_price) {
 }
 
 /**
- * WARNING: Testing needed....
  * Creates a bid on the listing
  * @param {*} _listingId The Listing to bid on
  * @param {*} Price Bidding Price
@@ -112,16 +108,13 @@ export async function CreateListingOnChain(_price) {
  */
 export async function CreateOfferOnChain(_listingId, Price) {
   try {
-    const PriceInGWei = ethers.parseUnits(Price.toString(), "gwei");
+    const PriceInGWei = ethers.parseUnits(Price.toString(), "wei");
     const transaction = await contractInstance.createOffer(
       _listingId,
       PriceInGWei,
       { value: PriceInGWei }
     );
-    transaction.wait().then(() => {
-      console.log("Created Bid!!");
-    });
-    return;
+    transaction.wait();
   } catch (err) {
     return err;
   }
@@ -134,11 +127,10 @@ export async function CreateOfferOnChain(_listingId, Price) {
 export async function DeleteUserOnChain(userAddress) {
   try {
     const transaction = await contractInstance.deleteUser(userAddress);
-    transaction.wait().then(() => {
-      console.log("Successfully Deleted!!");
-    });
+    transaction.wait();
+    return;
   } catch (err) {
-    console.log("Error in User Deletion: ", err);
+    return err;
   }
 }
 /**
@@ -164,14 +156,13 @@ export async function getLogs(eventSignature, topics = []) {
  */
 export async function UserCreatedEventListener() {
   contractInstance.on("UserCreated", (from, to, _amount, event) => {
-    console.log(to);
     return from === walletAddress;
   });
 }
 
 /**
  * Returns the price of a particular listing
- * @param {*} _listingId 
+ * @param {*} _listingId
  * @returns The price of the listing
  */
 export async function getPrice(_listingId) {
@@ -179,6 +170,6 @@ export async function getPrice(_listingId) {
     const price = await contractInstance.getListingPrice(_listingId);
     return price;
   } catch (err) {
-    console.log("Error in price retrieval: ", err);
+    return err;
   }
 }
