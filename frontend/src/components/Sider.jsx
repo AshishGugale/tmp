@@ -6,6 +6,7 @@ import {
   CloudOutlined,
   UploadOutlined,
   UnorderedListOutlined,
+  CarFilled,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
@@ -15,16 +16,9 @@ const SiderFunction = () => {
   const queryString = window.location.pathname;
   let selected;
   if (queryString.length == 1) selected = "1";
-  else if (queryString[1] == "a") selected = "2";
-  else if (queryString[1] == "s") selected = "3";
-  else if (queryString[1] == "m") selected = "4";
-  const vals = ["Dashboard", "Add Listing", "Statistics", "My Data"];
-  const items = [
-    UnorderedListOutlined,
-    UploadOutlined,
-    BarChartOutlined,
-    CloudOutlined,
-  ].map((icon, index) => ({
+  else if (queryString[1] == "g") selected = "2";
+  const vals = ["Dashboard", "Get Rides"];
+  const items = [UnorderedListOutlined, CarFilled].map((icon, index) => ({
     key: String(index + 1),
     icon: React.createElement(icon),
     label: `${vals[index]}`,

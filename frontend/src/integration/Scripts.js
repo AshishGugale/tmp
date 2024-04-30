@@ -4,18 +4,22 @@ const contractAddress = import.meta.env.VITE_CONTRACT;
 const RPC = import.meta.env.VITE_RPC;
 
 const abi = [
+  "function createProposal(uint256 floatId) external payable",
+  "function floatProposal(uint256 _fare, uint256 _latitudeStart, uint256 _longtitudeStart, uint256 _latitudeEnd, uint256 _longtitudeEnd) public payable",
+  "event ProposalCreated(uint256 indexed proposalId, uint256 indexed floatId, address indexed driver)",
+  "event FloatStart(uint256 indexed floatId, uint256 indexed lat, uint256 indexed long)",
+  "event FloatEnd(uint256 indexed floatId, uint256 indexed lat, uint256 indexed long)",
+  "event FloatCreated(uint256 indexed floatId, uint256 indexed fare)",
+  "function checkFulfilment(uint256 _id) public view returns (bool)",
+  "function withdrawFunds(uint256 _proposalId) external",
+  "function markFulfilment(uint256 _proposalId) external",
+  "event UserCreated(address indexed userAddr)",
   "function createUser() public",
-  "function createOffer(uint256 _listingId, uint256 _price) public payable",
-  "function createListing(uint256 _price) public",
-  "function deleteUser(address _userAddress) external",
-  "function fulfillListing(uint256 _listingId) public",
-  "event ItemCreated(address indexed seller, uint256 indexed itemId, uint256 indexed price)",
-  "event BidSuccessful(address indexed bidder, uint256 indexed itemId, uint256 indexed bidId)",
-  "event BidAccepted(uint256 indexed itemId, uint256 indexed winningBidId, uint256 indexed price)",
-  "event UserCreated(address indexed userId)",
-  "event UserDeleted(address indexed userId)",
-  "function isValidUser() public view returns (bool)",
-  "function getListingPrice(uint256 _listingId) public view returns (uint256)",
+  "function getUserIsActive() public view returns (bool)",
+  "function getFloatLatitudeEnd(uint256 floatId) public view returns (uint256)",
+  "function getFloatLatitudeStart(uint256 floatId) public view returns (uint256)",
+  "function getFloatLongtitudeEnd(uint256 floatId) public view returns (uint256)",
+  "function getFloatLongtitudeStart(uint256 floatId) public view returns (uint256)",
 ];
 
 /**
@@ -47,92 +51,86 @@ const contractInstance = web3Object.contractInstance;
 export const walletAddress = web3Object.address;
 
 export const rpcProvider = new ethers.JsonRpcProvider(RPC);
-/**
- * WARNING: Development only function, add deadlines in production and fulfills
- * the listing with the given ID, can only be done by the listing creator
- * @param {String} _listingId
- */
-export async function FulfillListingOnChain(_listingId) {
+
+export async function markFulfilmentOnChain(proposalId) {
   try {
-    const transaction = await contractInstance.fulfillListing(_listingId);
-    transaction.wait();
+    const transaction = await contractInstance.markFulfilment(proposalId);
+    transaction.wait().then(() => {
+      console.log("Marked Fulfilled!!");
+    });
     return;
   } catch (err) {
     return err;
   }
 }
 
-/**
- * Function to check the validity of a user
- * @returns Boolean value referring to the user's validity
- */
 export async function checkValidUser() {
   try {
-    const transaction = await contractInstance.isValidUser();
+    const transaction = await contractInstance.getUserIsActive();
+    console.log("User is: ", transaction);
     return transaction;
   } catch (err) {}
 }
 
-/**
- * Creates an user on-chain
- * @returns Error object for further error handling
- */
 export async function CreateUserOnChain() {
   try {
     const transaction = await contractInstance.createUser();
-    transaction.wait();
+    transaction.wait().then(() => {
+      console.log("User Created!");
+    });
   } catch (err) {
     return err;
   }
 }
 
-/**
- * Create a new listing on-chain with the given initial listing price
- * @param {Number} _price Initial listing price
- */
-export async function CreateListingOnChain(_price) {
+export async function CreateProposalOnChain(floatID) {
   try {
-    const PriceInWei = ethers.parseUnits(_price.toString(), "gwei");
-    const transaction = await contractInstance.createListing(PriceInWei);
-    transaction.wait();
+    const transaction = await contractInstance.createProposal(floatID);
+    transaction.wait().then(() => {
+      "Proposal Created!";
+    });
   } catch (err) {
     return err;
   }
 }
 
-/**
- * Creates a bid on the listing
- * @param {*} _listingId The Listing to bid on
- * @param {*} Price Bidding Price
- * @returns Error object if any
- */
-export async function CreateOfferOnChain(_listingId, Price) {
+export async function FloatProposalOnChain(
+  fare,
+  latStart,
+  longStart,
+  latEnd,
+  longEnd
+) {
   try {
-    const PriceInGWei = ethers.parseUnits(Price.toString(), "wei");
-    const transaction = await contractInstance.createOffer(
-      _listingId,
-      PriceInGWei,
+    fare *= 1e15;
+    const PriceInGWei = ethers.parseUnits(fare.toString(), "wei");
+    const transaction = await contractInstance.floatProposal(
+      fare,
+      latStart,
+      longStart,
+      latEnd,
+      longEnd,
       { value: PriceInGWei }
     );
-    transaction.wait();
+    transaction.wait().then(() => {
+      console.log("Floated!");
+    });
   } catch (err) {
     return err;
   }
 }
 
-/**
- * Deletes the given user from the mapping by setting isActive false
- * @param {String} userAddress
- */
-export async function DeleteUserOnChain(userAddress) {
+export async function withdrawFundsOnChain(proposalID) {
   try {
-    const transaction = await contractInstance.deleteUser(userAddress);
-    transaction.wait();
-    return;
+    const tx = await contractInstance.withdrawFunds(proposalID);
+    tx.wait().then(() => {
+      console.log("Withdrawn!!");
+    });
   } catch (err) {
-    return err;
+    console.log(err);
   }
 }
+
 /**
  * Get the Event Logs for some filters
  * @param {String} eventSignature Event signature in the format: eventname(typeofparam1, typeofparam2...)
@@ -150,26 +148,44 @@ export async function getLogs(eventSignature, topics = []) {
   return logs;
 }
 
-/**
- * Event listener to trigger rendering of Create User button
- * @returns Boolean value whether the given User Creation event has emanated for the given user
- */
-export async function UserCreatedEventListener() {
-  contractInstance.on("UserCreated", (from, to, _amount, event) => {
-    return from === walletAddress;
-  });
-}
-
-/**
- * Returns the price of a particular listing
- * @param {*} _listingId
- * @returns The price of the listing
- */
 export async function getPrice(_listingId) {
   try {
     const price = await contractInstance.getListingPrice(_listingId);
     return price;
   } catch (err) {
     return err;
+  }
+}
+
+export async function getFloatLatitudeEndOnChain(floatID) {
+  try {
+    const tx = await contractInstance.getFloatLatitudeEnd(floatID);
+    return tx;
+  } catch (err) {
+    console.log(err);
+  }
+}
+export async function getFloatLatitudeStartOnChain(floatID) {
+  try {
+    const tx = await contractInstance.getFloatLatitudeStart(floatID);
+    return tx;
+  } catch (err) {
+    console.log(err);
+  }
+}
+export async function getFloatLongtitudeStartOnChain(floatID) {
+  try {
+    const tx = await contractInstance.getFloatLongtitudeStart(floatID);
+    return tx;
+  } catch (err) {
+    console.log(err);
+  }
+}
+export async function getFloatLongtitudeEndOnChain(floatID) {
+  try {
+    const tx = await contractInstance.getFloatLongtitudeEnd(floatID);
+    return tx;
+  } catch (err) {
+    console.log(err);
   }
 }

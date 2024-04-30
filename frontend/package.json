@@ -11,12 +11,17 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.6",
-    "antd": "^5.16.4",
+    "@mapbox/mapbox-gl-directions": "^4.3.1",
+    "@mapbox/polyline": "^1.2.1",
+    "@turf/boolean-point-in-polygon": "^6.5.0",
+    "@turf/turf": "^6.5.0",
+    "antd": "^5.16.5",
     "dotenv": "^16.4.5",
     "ethers": "^6.12.0",
+    "mapbox-gl": "^3.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.3"
+    "react-router-dom": "^6.23.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",

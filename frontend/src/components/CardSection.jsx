@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import SingleCard from "./SingleCard";
 import { Skeleton, Space } from "antd";
 import { getLogs, web3Object } from "../integration/Scripts.js";
-import {CardFlexStyle } from "../styles/Styles.js";
+import { CardFlexStyle } from "../styles/Styles.js";
 
 const CardSection = () => {
   const [data, setData] = useState([]);
@@ -12,7 +12,9 @@ const CardSection = () => {
   useEffect(() => {
     async function getAndSetData() {
       setIsLoading(true);
-      const data = await getLogs("ItemCreated(address,uint256,uint256)");
+      const data = await getLogs(
+        "FloatCreated(uint256,uint256)"
+      );
       setData(data);
       setIsLoading(false);
     }
@@ -21,14 +23,15 @@ const CardSection = () => {
 
   useEffect(() => {
     const listener = (from, to, _amount, event) => {
+      console.log(from, to, _amount, event);
       setChanged(!changed);
-    }  
-    web3Object.contractInstance.on("ItemCreated", listener);
+    };
+    web3Object.contractInstance.on("FloatCreated", listener);
     return () => {
-      web3Object.contractInstance.off("ItemCreated", listener);
-    }
+      web3Object.contractInstance.off("FloatCreated", listener);
+    };
   }, []);
-
+  
   const renderCards = () => {
     if (!data.length && !isLoading) {
       return <p>No listings yet!</p>;

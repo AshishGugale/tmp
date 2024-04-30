@@ -74,7 +74,7 @@ const Navbar = () => {
       {contextHolder}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div style={{ marginLeft: "20px", fontWeight: "bold" }}>
-          SunStream <ThunderboltFilled style={{ color: "blue" }} />
+          RideCrypt <ThunderboltFilled style={{ color: "blue" }} />
         </div>
         <div style={{ display: "flex", gap: "20px", margin: "0px 20px" }}>
           {isValid ? (

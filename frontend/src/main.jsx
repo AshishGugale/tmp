@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import Homepage from "./pages/Homepage.jsx";
 import Content from './components/Content.jsx'
-import AddListing from "./pages/AddListing.jsx";
+import AddListing from "./pages/GetRides.jsx";
 import CreateBid from "./pages/CreateBid.jsx";
 import ErrorHandler from "./pages/ErrorHandler.jsx";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
@@ -16,8 +16,7 @@ const router = createBrowserRouter([
   errorElement: <ErrorHandler />,
   children: [
     { path: '/', element: <Content/>}, 
-    { path: '/addlisting', element: <AddListing /> },
-    {path: '/createbid/:id', element: <CreateBid/>}
+    { path: '/getrides', element: <AddListing /> },
 ],
  },
 

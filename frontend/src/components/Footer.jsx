@@ -9,7 +9,7 @@ const FooterFunction = () => {
         textAlign: "center",
       }}
     >
-      SunStream ©{new Date().getFullYear()} Created by Ashish Gugale
+      RideCrypt ©{new Date().getFullYear()} Created by Ashish Gugale
     </Footer>
   );
 };
